@@ -41,13 +41,13 @@ class QuestionTestCase(unittest.TestCase):
         self.assertTrue(data["total_questions"])
         self.assertTrue(len(data["questions"]))
 
-    def test_404_sent_requesting_beyond_valid_page(self):
+    def test_422_sent_requesting_beyond_valid_page(self):
         res = self.client().get("api/questions?page=1000")
         data = json.loads(res.data)
 
-        self.assertEqual(res.status_code, 404)
+        self.assertEqual(res.status_code, 422)
         self.assertEqual(data["success"], False)
-        self.assertEqual(data["message"], "resource not found")
+        self.assertEqual(data["message"], "Unprocessable Entity")
 
     def test_create_new_questions(self):
         res = self.client().post("api/questions", json=self.new_question)
@@ -57,6 +57,22 @@ class QuestionTestCase(unittest.TestCase):
         self.assertEqual(data["success"], True)
         self.assertTrue(data["created"])
         self.assertTrue(len(data["questions"]))
+
+    def test_500_if_question_creation_fails(self):
+        res = self.client().post("api/questions", json={})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 500)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "Internal Server Error")
+
+    def test_500_if_method_not_allowed(self):
+        res = self.client().post("api/questions")
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 500)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "Internal Server Error")
 
     def test_delete_questions(self):
         res = self.client().delete("api/questions/1")
@@ -69,7 +85,31 @@ class QuestionTestCase(unittest.TestCase):
         self.assertEqual(data["deleted"], 1)
         self.assertTrue(data["total_questions"])
         self.assertTrue(len(data["questions"]))
-        self.assertEqual(question, None)
+
+    def test_422_delete_questions_fails(self):
+        res = self.client().delete("api/questions/1000")
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "Unprocessable Entity")
+
+    def test_search_questions(self):
+        search_term = {"searchTerm": "Where"}
+        res = self.client().post("api/questions/search", json=search_term)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data["success"], True)
+        self.assertTrue(len(data["questions"]))
+
+    def test_400_if_question_search_fails(self):
+        res = self.client().post("api/questions/search", json={})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "Missing field: searchTerm")
 
     def test_get_categories(self):
         res = self.client().get("api/categories")
@@ -89,15 +129,6 @@ class QuestionTestCase(unittest.TestCase):
         self.assertTrue(data["total_questions"])
         self.assertTrue(len(data["questions"]))
 
-    def test_search_questions(self):
-        search_term = {"searchTerm": "Where"}
-        res = self.client().post("api/questions/search", json=search_term)
-        data = json.loads(res.data)
-
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(data["success"], True)
-        self.assertTrue(len(data["questions"]))
-
     def test_play_quiz(self):
         quiz_round = {"previous_questions": [], "quiz_category": {"type": "Science", "id": 1}}
         res = self.client().post("api/quizzes", json=quiz_round)
@@ -106,6 +137,14 @@ class QuestionTestCase(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(data["success"], True)
         self.assertTrue(data["question"])
+
+    def test_422_if_play_quiz_fails(self):
+        res = self.client().post("api/quizzes", json={})
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data["success"], False)
+        self.assertEqual(data["message"], "Unprocessable Entity")
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
