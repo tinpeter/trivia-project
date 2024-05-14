@@ -1,0 +1,11 @@
+# NPM packages folder
+node_modules
+
+# Pycahe folder
+__pycache__
+
+# Environment folder
+venv
+
+# lock file
+package-lock.json
